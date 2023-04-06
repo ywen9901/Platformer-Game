@@ -174,7 +174,7 @@ class Fire(Object):
         # sprite_sheet_name = sprite_sheet + "_" + self.direction
         sprites = self.fire[self.animation_name]
         sprite_index = (self.animation_count // self.ANIMATION_DELAY) % len(sprites)
-        self.sprite = sprites[sprite_index]
+        self.image = sprites[sprite_index]
         self.animation_count += 1
 
         self.rect = self.image.get_rect(topleft = (self.rect.x, self.rect.y))
