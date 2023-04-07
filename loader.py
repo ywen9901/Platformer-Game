@@ -10,7 +10,7 @@ pygame.init()
 pygame.display.set_caption("Platformer")
 
 WIDTH, HEIGHT = 1000, 800
-FPS = 90
+FPS = 120
 PLAYER_VEL = 5
 
 window = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -54,7 +54,7 @@ class Player(pygame.sprite.Sprite):
     # Use Sprite for pixel collision
     COLOR = (255, 0, 0)
     GRAVITY = 8
-    SPRITES = load_sprite_sheets("MainCharacters", "PinkMan", 32, 32, True)
+    SPRITES = load_sprite_sheets("MainCharacters", "VirtualGuy", 32, 32, True)
     ANIMATION_DELAY = 1
 
     def __init__(self, x, y, width, height):
@@ -68,6 +68,8 @@ class Player(pygame.sprite.Sprite):
         self.animation_count = 0
         self.fall_count = 0
         self.jump_count = 0
+        self.hit = False
+        self.hit_count = 0
 
     def jump(self):
         self.y_vel = -self.GRAVITY * 2
@@ -79,6 +81,10 @@ class Player(pygame.sprite.Sprite):
     def move(self, dx, dy):
         self.rect.x += dx
         self.rect.y += dy
+
+    def make_hit(self):
+        self.hit = True
+        self.hit_count = 0
 
     def move_left(self, vel):
         self.x_vel = -vel
@@ -96,6 +102,11 @@ class Player(pygame.sprite.Sprite):
         self.y_vel += min(1, (self.fall_count / fps) * self.GRAVITY)
         self.move(self.x_vel, self.y_vel)
 
+        if self.hit:
+            self.hit_count += 1
+        if self.hit_count > fps * 0.2:
+            self.hit = False
+
         self.fall_count += 1
         self.update_sprite()
 
@@ -109,17 +120,19 @@ class Player(pygame.sprite.Sprite):
         self.y_vel *= -1
 
     def update_sprite(self):
-        sprite_sheet = "idle"
-        if self.y_vel != 0:
+        sprite_sheet = "run"
+        if self.hit:
+            sprite_sheet = "hit"
+        if self.x_vel == 0:
+            sprite_sheet = "idle"
+        elif self.y_vel != 0:
             if self.jump_count == 1:
                 sprite_sheet = "jump"
             elif self.jump_count == 2:
                 sprite_sheet = "double_jump"
         elif self.y_vel > self.GRAVITY * 2:
             sprite_sheet = "fall"
-        elif self.x_vel != 0:
-            sprite_sheet = "run"
-        print(self.x_vel)
+
         sprite_sheet_name = sprite_sheet + "_" + self.direction
         sprites = self.SPRITES[sprite_sheet_name]
         sprite_index = (self.animation_count // self.ANIMATION_DELAY) % len(sprites)
@@ -218,7 +231,7 @@ def handle_vertical_collision(player, objects, dy):
                 player.rect.top = obj.rect.bottom
                 player.hit_head()
         
-        collided_objects.append(obj)
+            collided_objects.append(obj)
     
     return collided_objects
 
@@ -247,7 +260,11 @@ def handle_move(player, objects):
     if keys[pygame.K_RIGHT] and not collide_right:
         player.move_right(PLAYER_VEL)
 
-    handle_vertical_collision(player, objects, player.y_vel)
+    vertical_collide = handle_vertical_collision(player, objects, player.y_vel)
+    to_check = [collide_left, collide_right, *vertical_collide]
+    for obj in to_check:
+        if obj and obj.name == "fire":
+            player.make_hit()
 
 def main(window):
     clock = pygame.time.Clock()
