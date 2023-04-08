@@ -110,6 +110,7 @@ class Player(pygame.sprite.Sprite):
         if self.hit_count > fps * 0.3:
             self.hit = False
 
+        self.fall_count += 1
         self.update_sprite()
 
     def landed(self):
