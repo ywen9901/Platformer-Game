@@ -71,6 +71,7 @@ class Player(pygame.sprite.Sprite):
         self.hit = False
         self.hit_count = 0
         self.health = 5
+        self.win = False
 
     def jump(self):
         self.y_vel = -self.GRAVITY * 2
@@ -398,7 +399,7 @@ def handle_move(player, objects):
         if obj and obj.name in trap_name:
             player.make_hit()
         if obj and obj.name == "flag":
-            print("succ")  
+            player.win = True 
 
 def draw_start_menu():
     window.fill((255, 255, 255))
@@ -409,6 +410,12 @@ def draw_start_menu():
 def draw_game_over():
     window.fill((255, 255, 255))
     image = pygame.image.load(join("assets", "Sign", "GameOver.png")).convert_alpha()
+    window.blit(image, (WIDTH/2 - image.get_width()/2, HEIGHT/2 - image.get_height()/2))
+    pygame.display.update()
+
+def draw_win():
+    window.fill((255, 255, 255))
+    image = pygame.image.load(join("assets", "Sign", "YouWin.jpg")).convert_alpha()
     window.blit(image, (WIDTH/2 - image.get_width()/2, HEIGHT/2 - image.get_height()/2))
     pygame.display.update()
 
@@ -474,6 +481,14 @@ def main(window):
         
         if game_state == "game_over":
             draw_game_over()
+            keys = pygame.key.get_pressed()
+            if keys[pygame.K_q]:
+                pygame.quit()
+                quit()
+
+        if player.win:
+            game_state = "win"
+            draw_win()
             keys = pygame.key.get_pressed()
             if keys[pygame.K_q]:
                 pygame.quit()
