@@ -10,8 +10,8 @@ pygame.init()
 pygame.display.set_caption("Platformer")
 
 WIDTH, HEIGHT = 1000, 800
-FPS = 60
-PLAYER_VEL = 2
+FPS = 30
+PLAYER_VEL = 4
 
 window = pygame.display.set_mode((WIDTH, HEIGHT))
 
@@ -70,7 +70,7 @@ class Player(pygame.sprite.Sprite):
         self.jump_count = 0
         self.hit = False
         self.hit_count = 0
-        self.health = 3
+        self.health = 5
 
     def jump(self):
         self.y_vel = -self.GRAVITY * 2
@@ -152,7 +152,7 @@ class Player(pygame.sprite.Sprite):
         size = (50, 10)
         pygame.draw.rect(window, (0, 0, 0), (pos[0] - 2, pos[1] - 2, size[0] + 4, size[1] + 4), 1)
         pygame.draw.rect(window, (255, 0, 0), (pos[0], pos[1], size[0], size[1]))
-        pygame.draw.rect(window, (0, 128, 0), (pos[0] + self.health * 33, pos[1], size[0] - self.health * 33, size[1]))
+        pygame.draw.rect(window, (0, 128, 0), (pos[0] + self.health * 10, pos[1], size[0] - self.health * 10, size[1]))
 
     def draw(self, window, offset_x):
         window.blit(self.sprite, (self.rect.x - offset_x, self.rect.y))
@@ -475,7 +475,7 @@ def main(window):
         if game_state == "game_over":
             draw_game_over()
             keys = pygame.key.get_pressed()
-            if keys[pygame.K_SPACE]:
+            if keys[pygame.K_q]:
                 pygame.quit()
                 quit()
 
