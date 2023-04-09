@@ -10,8 +10,8 @@ pygame.init()
 pygame.display.set_caption("Platformer")
 
 WIDTH, HEIGHT = 1000, 800
-FPS = 120
-PLAYER_VEL = 5
+FPS = 60
+PLAYER_VEL = 2
 
 window = pygame.display.set_mode((WIDTH, HEIGHT))
 
@@ -55,7 +55,7 @@ class Player(pygame.sprite.Sprite):
     COLOR = (255, 0, 0)
     GRAVITY = 8
     SPRITES = load_sprite_sheets("MainCharacters", "VirtualGuy", 32, 32, True)
-    ANIMATION_DELAY = 1
+    ANIMATION_DELAY = 2
 
     def __init__(self, x, y, width, height):
         super().__init__()
@@ -70,7 +70,7 @@ class Player(pygame.sprite.Sprite):
         self.jump_count = 0
         self.hit = False
         self.hit_count = 0
-        self.health = 10
+        self.health = 3
 
     def jump(self):
         self.y_vel = -self.GRAVITY * 2
@@ -152,7 +152,7 @@ class Player(pygame.sprite.Sprite):
         size = (50, 10)
         pygame.draw.rect(window, (0, 0, 0), (pos[0] - 2, pos[1] - 2, size[0] + 4, size[1] + 4), 1)
         pygame.draw.rect(window, (255, 0, 0), (pos[0], pos[1], size[0], size[1]))
-        pygame.draw.rect(window, (0, 128, 0), (pos[0] + self.health * 5, pos[1], size[0] - self.health * 5, size[1]))
+        pygame.draw.rect(window, (0, 128, 0), (pos[0] + self.health * 33, pos[1], size[0] - self.health * 33, size[1]))
 
     def draw(self, window, offset_x):
         window.blit(self.sprite, (self.rect.x - offset_x, self.rect.y))
@@ -176,6 +176,126 @@ class Block(Object):
         block = load_block(size)
         self.image.blit(block, (0, 0))
         self.mask = pygame.mask.from_surface(self.image)
+
+class Box(Object):
+    def __init__(self, x, y, width, height):
+        super().__init__(x, y, width, height)
+        path = join("assets", "Items", "Boxes", "Box2", "Idle.png")
+        image = pygame.image.load(path).convert_alpha()
+        surface = pygame.Surface((width, height), pygame.SRCALPHA, 32)
+        rect = pygame.Rect(0, 0, width, height)
+        surface.blit(image, (0, 0), rect)
+        box = pygame.transform.scale2x(pygame.transform.scale2x(surface))
+        self.image.blit(box, (0, 0))
+        self.mask = pygame.mask.from_surface(self.image)
+
+class Flag(Object):
+    ANIMATION_DELAY = 5
+
+    def __init__(self, x, y, width, height):
+        super().__init__(x, y, width, height, "flag")
+
+        path = join("assets", "Items", "Checkpoints", "Checkpoint")
+        images = [f for f in listdir(path) if isfile(join(path, f))]
+
+        all_sprites = {}
+
+        for image in images:
+            sprite_sheet = pygame.image.load(join(path, image)).convert_alpha()
+
+            sprites = []
+            for i in range(sprite_sheet.get_width() // width):
+                surface = pygame.Surface((width, height), pygame.SRCALPHA, 32)
+                rect = pygame.Rect(i * width, 0, width, height)
+                surface.blit(sprite_sheet, (0, 0), rect)
+                sprites.append(pygame.transform.scale2x(surface))
+                all_sprites[image.replace(".png", "")] = sprites
+        
+        self.flag = all_sprites
+        self.image = self.flag["Checkpoint (Flag Idle)(64x64)"][0]
+        self.mask = pygame.mask.from_surface(self.image)
+        self.animation_count = 0
+    
+    def loop(self):
+        sprites = self.flag["Checkpoint (Flag Idle)(64x64)"]
+        sprite_index = (self.animation_count // self.ANIMATION_DELAY) % len(sprites)
+        self.image = sprites[sprite_index]
+        self.animation_count += 1
+
+        self.rect = self.image.get_rect(topleft = (self.rect.x, self.rect.y))
+        self.mask = pygame.mask.from_surface(self.image)
+
+class RockHead(Object):
+    ANIMATION_DELAY = 5
+    spd = 5
+
+    def __init__(self, x, y, width, height):
+        super().__init__(x, y, width, height, "rock_head")
+        self.rock_head = load_sprite_sheets("Traps", "Rock Head", width, height)
+        self.image = self.rock_head["Blink (42x42)"][0]
+        self.mask = pygame.mask.from_surface(self.image)
+        self.animation_count = 0
+
+    def loop(self):
+        sprites = self.rock_head["Blink (42x42)"]
+        sprite_index = (self.animation_count // self.ANIMATION_DELAY) % len(sprites)
+        self.image = sprites[sprite_index]
+        self.animation_count += 1
+        self.rect.y += self.spd
+
+        self.rect = self.image.get_rect(topleft = (self.rect.x, self.rect.y))
+        self.mask = pygame.mask.from_surface(self.image)
+
+        if self.animation_count // self.ANIMATION_DELAY > len(sprites):
+            self.animation_count = 0
+
+        if self.rect.y >= 600 or self.rect.y <= 150:
+            self.spd = -self.spd
+
+class Spikes(Object):
+    ANIMATION_DELAY = 2
+
+    def __init__(self, x, y, width, height):
+        super().__init__(x, y, width, height, "spikes")
+        self.spikes = load_sprite_sheets("Traps", "Spikes", width, height)
+        self.image = self.spikes["Idle"][0]
+        self.mask = pygame.mask.from_surface(self.image)
+        self.animation_count = 0
+    
+    def loop(self):
+        sprites = self.spikes["Idle"]
+        sprite_index = (self.animation_count // self.ANIMATION_DELAY) % len(sprites)
+        self.image = sprites[sprite_index]
+        self.animation_count += 1
+
+        self.rect = self.image.get_rect(topleft = (self.rect.x, self.rect.y))
+        self.mask = pygame.mask.from_surface(self.image)
+
+        if self.animation_count // self.ANIMATION_DELAY > len(sprites):
+            self.animation_count = 0
+
+class SpikeHead(Object):
+    ANIMATION_DELAY = 5
+
+    def __init__(self, x, y, width, height):
+        super().__init__(x, y, width, height, "spike_head")
+        self.spike_head = load_sprite_sheets("Traps", "Spike Head", width, height)
+        self.image = self.spike_head["Blink (54x52)"][0]
+        self.mask = pygame.mask.from_surface(self.image)
+        self.animation_count = 0
+
+    def loop(self):
+        # sprite_sheet_name = sprite_sheet + "_" + self.direction
+        sprites = self.spike_head["Blink (54x52)"]
+        sprite_index = (self.animation_count // self.ANIMATION_DELAY) % len(sprites)
+        self.image = sprites[sprite_index]
+        self.animation_count += 1
+
+        self.rect = self.image.get_rect(topleft = (self.rect.x, self.rect.y))
+        self.mask = pygame.mask.from_surface(self.image)
+
+        if self.animation_count // self.ANIMATION_DELAY > len(sprites):
+            self.animation_count = 0
 
 class Fire(Object):
     ANIMATION_DELAY = 2
@@ -212,7 +332,7 @@ def get_background(name):
     _, _, width, height = image.get_rect()
     tiles = []
 
-    for i in range(WIDTH // width + 1):
+    for i in range(WIDTH // width + 2):
         for j in range(HEIGHT // height + 1):
             # From top left, make tuple
             pos = (i*width, j*height)
@@ -220,9 +340,9 @@ def get_background(name):
 
     return tiles, image
 
-def draw(window, background, bg_image, player, objects, offset_x):
+def draw(window, background, bg_image, player, objects, offset_x, scroll):
     for tile in background:
-        window.blit(bg_image, tile)
+        window.blit(bg_image, (tile[0] + scroll, tile[1]))
     
     for obj in objects:
         obj.draw(window, offset_x)
@@ -273,29 +393,71 @@ def handle_move(player, objects):
 
     vertical_collide = handle_vertical_collision(player, objects, player.y_vel)
     to_check = [collide_left, collide_right, *vertical_collide]
+    trap_name = ["fire", "spikes", "spike_head"]
     for obj in to_check:
-        if obj and obj.name == "fire":
+        if obj and obj.name in trap_name:
             player.make_hit()
-            
+        if obj and obj.name == "flag":
+            print("succ")  
+
+def draw_start_menu():
+    window.fill((255, 255, 255))
+    image = pygame.image.load(join("assets", "Sign", "ToBegin.png")).convert_alpha()
+    window.blit(image, (WIDTH/2 - image.get_width()/2, HEIGHT/2 - image.get_height()/2))
+    pygame.display.update()
+
+def draw_game_over():
+    window.fill((255, 255, 255))
+    image = pygame.image.load(join("assets", "Sign", "GameOver.png")).convert_alpha()
+    window.blit(image, (WIDTH/2 - image.get_width()/2, HEIGHT/2 - image.get_height()/2))
+    pygame.display.update()
+
 def main(window):
+    game_state = "start_menu"
+
     clock = pygame.time.Clock()
     block_size = 96
 
-    background, bg_image = get_background("Blue.png")
+    background, bg_image = get_background("Cloud.jpg")
     player = Player(100, 100, 50, 50)
-    fire = Fire(150, HEIGHT - block_size - 64, 16, 32)
-    fire.on()
-    floor = [Block(i * block_size, HEIGHT - block_size, block_size) for i in range(-WIDTH // block_size, (WIDTH*2) // block_size)]
-    objects = [*floor, Block(0, HEIGHT - block_size*2, block_size),  Block(block_size*3, HEIGHT - block_size*4, block_size), fire]
+   
+    wall = [Block(0, HEIGHT - block_size*(i+1), block_size) for i in range(HEIGHT // block_size + 1)]
+    floor = [Block(i*block_size, HEIGHT - block_size, block_size) for i in range(0, (WIDTH*2) // block_size + 3)]
+
+    boxes = []
+    for i in range(7):
+        for j in range(i):
+            boxes.append(Box(block_size*14 + 80*j, HEIGHT - block_size - 75*(8-i-1) - 12, 112, 96))
+    
+    platform1 = [Block(block_size*2 + block_size*i, HEIGHT - block_size*3.6, block_size) for i in range(3)]
+    platform2 = [Block(block_size*7 + block_size*i, HEIGHT - block_size*5.5, block_size) for i in range(3)]
+    platform3 = [Block(block_size*7 + block_size*i, HEIGHT - block_size*3, block_size) for i in range(3)]
+
+    rock_heads = [RockHead(block_size*10.5 + 64, 550, 42, 42), RockHead(block_size*10.5 + 128, 200, 42, 42), RockHead(block_size*10.5 + 192, 350, 42, 42)]
+
+    fires = [Fire(block_size*7, HEIGHT - block_size*5.5 - 64, 16, 32), Fire(block_size*15.5 - 16, HEIGHT - block_size*4 - 64, 16, 32)]
+    
+    spikes1 = [Spikes(block_size + 16*i, HEIGHT - block_size - 32, 8, 16) for i in range(100)]
+    traps = [*spikes1, SpikeHead(block_size*5 + 20, HEIGHT - block_size*4, 54, 52)]
+
+    flag = Flag(block_size*14 + 640, HEIGHT - block_size - 128, 64, 64)
+
+    for fire in fires:
+        fire.on()
+
+    objects = [*floor, *wall, *platform1, *platform2, *platform3, *fires, *traps, *rock_heads, *boxes, flag]
+
+    run = True
 
     offset_x = 0
     scroll_area_width = 200
+    scroll = 0
 
-    run = True
     while run:
         # To regulate the frame rate accross different devices
         clock.tick(FPS)
 
+        # event handler
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
@@ -304,15 +466,43 @@ def main(window):
                 if event.key == pygame.K_SPACE and player.jump_count < 2:
                     player.jump()
 
-        player.loop(FPS)
+        if game_state == "start_menu":
+            draw_start_menu()
+            keys = pygame.key.get_pressed()
+            if keys[pygame.K_SPACE]:
+                game_state = "game"
+        
+        if game_state == "game_over":
+            draw_game_over()
+            keys = pygame.key.get_pressed()
+            if keys[pygame.K_SPACE]:
+                pygame.quit()
+                quit()
 
-        fire.loop()
-        handle_move(player, objects)
-        draw(window, background, bg_image, player, objects, offset_x)
+        if game_state == "game":
+            if player.health <= 0:
+                game_state = "game_over"
 
-        if((player.rect.right - offset_x >= WIDTH - scroll_area_width) and player.x_vel > 0) or (
-            (player.rect.left - offset_x <= scroll_area_width) and player.x_vel < 0):
-            offset_x += player.x_vel
+            scroll -= 3
+            # reset scroll
+            if abs(scroll) > WIDTH:
+                scroll = 0
+
+            player.loop(FPS)
+            flag.loop()
+            for fire in fires:
+                fire.loop()
+            for trap in traps:
+                trap.loop()
+            for rock_head in rock_heads:
+                rock_head.loop()
+
+            if((player.rect.right - offset_x >= WIDTH - scroll_area_width) and player.x_vel > 0) or (
+                (player.rect.left - offset_x <= scroll_area_width) and player.x_vel < 0):
+                offset_x += player.x_vel
+                
+            handle_move(player, objects)
+            draw(window, background, bg_image, player, objects, offset_x, scroll)
 
     pygame.quit()
     quit()
